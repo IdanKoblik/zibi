@@ -1,2 +1,1 @@
-# zibi
-Navigate in Niri using your hands
+# IN DEV STAGE
