@@ -1,6 +1,8 @@
 use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
 
+use niri_ipc::{Action, Request, socket};
+
 #[derive(Debug, Default, Clone)]
 struct Point {
     x: i16,
@@ -25,12 +27,13 @@ enum Direction {
     Right,
     Up,
     Down,
-    Unknown
 }
 
 const MOVE_THRESHOLD: i16 = 150;
 
 fn main() {
+    let mut niri_socket = socket::Socket::connect().expect("cannot connect to niri socket");
+
     let stdin = io::stdin();
     let mut handle = stdin.lock();
 
@@ -39,7 +42,6 @@ fn main() {
     let mut points = Vec::new();
     let mut last_tick = Instant::now();
 
-    let mut dir = Direction::Unknown;
     loop {
         buffer.clear();
         
@@ -78,26 +80,31 @@ fn main() {
                 continue;
             }
 
-            if delta_x.abs() > delta_y.abs() {
+            let dir = if delta_x.abs() > delta_y.abs() {
                 match delta_x {
-                    x if x < -MOVE_THRESHOLD => dir = Direction::Right,
-                    x if x > MOVE_THRESHOLD => dir = Direction::Left,
-                    _ => {}
+                    x if x < -MOVE_THRESHOLD => Direction::Right,
+                    x if x > MOVE_THRESHOLD => Direction::Left,
+                    _ => continue 
                 }
             } else {
                 match delta_y {
-                    y if y < -MOVE_THRESHOLD => dir = Direction::Down,
-                    y if y > MOVE_THRESHOLD => dir = Direction::Up,
-                    _ => {}
+                    y if y < -MOVE_THRESHOLD => Direction::Down,
+                    y if y > MOVE_THRESHOLD => Direction::Up,
+                    _ => continue
                 }
-            }
-
-            if dir == Direction::Unknown {
-                continue;
-            }
+            };
 
             println!("Direction: {:?}", dir);
-            dir = Direction::Unknown;
+            let action = match dir {
+                Direction::Up => Request::Action(Action::FocusWorkspaceUp {  }),
+                Direction::Down => Request::Action(Action::FocusWorkspaceDown {  }),
+                Direction::Left => Request::Action(Action::FocusColumnLeft {  }),
+                Direction::Right => Request::Action(Action::FocusColumnRight {  }),
+            };
+
+            if let Err(err) = dbg!(niri_socket.send(action)) {
+                eprintln!("error when sending request to niri socket, {err}");
+            }
 
             points.clear();
             last_tick = Instant::now();
