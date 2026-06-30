@@ -1,9 +1,49 @@
 import sys
 import cv2
 import time
+import threading
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+
+class VideoStream:
+    def __init__(self, src=0):
+        self.cap = cv2.VideoCapture(src)
+        self.cap.set(cv2.CAP_PROP_FPS, 60)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.grabbed, self.frame = self.cap.read()
+        self.started = False
+        self.read_lock = threading.Lock()
+
+    def start(self):
+        if self.started:
+            return self
+        self.started = True
+        self.thread = threading.Thread(target=self.update, args=())
+        self.thread.daemon = True
+        self.thread.start()
+        return self
+
+    def update(self):
+        while self.started:
+            grabbed, frame = self.cap.read()
+            if not grabbed:
+                self.started = False
+                break
+            with self.read_lock:
+                self.grabbed = grabbed
+                self.frame = frame
+
+    def read(self):
+        with self.read_lock:
+            if not self.grabbed or self.frame is None:
+                return False, None
+            return self.grabbed, self.frame.copy()
+
+    def release(self):
+        self.started = False
+        self.thread.join(timeout=1.0)
+        self.cap.release()
 
 HAND_CONNECTIONS = [
     (0, 1), (1, 2), (2, 3), (3, 4),          # thumb
@@ -23,16 +63,16 @@ detector = vision.HandLandmarker.create_from_options(options)
 
 TIP_INDEX = 8
 
-cap = cv2.VideoCapture(0)
-cap.set(cv2.CAP_PROP_FPS, 60)
+vs = VideoStream(0).start()
 
 p_time = 0
 c_time = 0
 
 while True:
-    success, img = cap.read()
-    if not success:
-        break
+    success, img = vs.read()
+    if not success or img is None:
+        time.sleep(0.001)
+        continue
 
     img = cv2.flip(img, 1)
 
@@ -88,6 +128,6 @@ while True:
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-cap.release()
+vs.release()
 cv2.destroyAllWindows()
 
