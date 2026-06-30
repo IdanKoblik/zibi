@@ -15,7 +15,7 @@ HAND_CONNECTIONS = [
 ]
 
 options = vision.HandLandmarkerOptions(
-    base_options=python.BaseOptions(model_asset_path="hand_landmarker.task"),
+    base_options=python.BaseOptions(model_asset_path="models/hand_landmarker.task"),
     running_mode=vision.RunningMode.VIDEO,
     num_hands=1,
 )
@@ -24,6 +24,7 @@ detector = vision.HandLandmarker.create_from_options(options)
 TIP_INDEX = 8
 
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FPS, 60)
 
 p_time = 0
 c_time = 0
@@ -59,7 +60,7 @@ while True:
         for id, lm in enumerate(handLms):
             cx, cy = int(lm.x * w), int(lm.y * h)
             points.append((cx, cy))
-            print(id, cx, cy, file=sys.stderr)
+            # print(id, cx, cy, file=sys.stderr)
             if id == 0:
                 cv2.circle(img, (cx, cy), 10, (255, 0, 255), cv2.FILLED)
 
@@ -74,7 +75,7 @@ while True:
         text = f"{label}: ({tx}, {ty})"
         cv2.putText(img, text, (w - 320, 30 + hand_idx * 30), cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 255, 0), 2)
 
-        print(f"{tx, ty}")
+        print(f"{tx}, {ty}")
         sys.stdout.flush()
 
     c_time = time.time()
