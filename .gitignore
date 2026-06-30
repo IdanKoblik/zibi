@@ -1,5 +1,6 @@
 # Local
 hand_landmarker.task
+models/*
 
 # RUST
 
@@ -250,3 +251,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Added by cargo
+
+/target
