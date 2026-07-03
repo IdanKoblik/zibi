@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (defaults to the version in Cargo.toml)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Test, fmt & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --all --locked
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint (clippy)
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+  package:
+    name: Build AppImage
+    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      prefix: ${{ steps.meta.outputs.prefix }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install appimagetool
+        run: |
+          curl -sSL -o /usr/local/bin/appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Determine name & version
+        id: meta
+        run: |
+          cargo_version="$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"(.*)".*/\1/')"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ github.event.inputs.version }}"
+            [ -z "$version" ] && version="$cargo_version"
+            prefix="v$version"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            prefix="pr${{ github.event.pull_request.number }}"
+          else
+            prefix="$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$cargo_version" >> "$GITHUB_OUTPUT"
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "Using prefix: $prefix"
+
+      - name: Build AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: bash packaging/build_appimage.sh
+
+      - name: Rename AppImage
+        id: artifact
+        run: |
+          appimage="$(ls *.AppImage | head -n1)"
+          out="${{ steps.meta.outputs.prefix }}-zibi-x86_64.AppImage"
+          mv "$appimage" "$out"
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifact
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.prefix }}-zibi
+          path: ${{ steps.artifact.outputs.path }}
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.meta.outputs.prefix }}"
+          gh release create "$tag" \
+            "${{ steps.artifact.outputs.path }}" \
+            --title "$tag" \
+            --generate-notes
