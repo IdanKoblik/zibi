@@ -2,72 +2,9 @@ import sys
 import cv2
 import time
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-
-
-class MJPEGServer:
-    def __init__(self, host="127.0.0.1", port=8080):
-        self.host = host
-        self.port = port
-        self._frame = None
-        self._lock = threading.Lock()
-        server = self
-
-        class Handler(BaseHTTPRequestHandler):
-            def log_message(self, *args):
-                pass  # keep stdout/stderr clean for the zibi pipe
-
-            def do_GET(self):
-                if self.path in ("/", "/index.html"):
-                    self.send_response(200)
-                    self.send_header("Content-Type", "text/html")
-                    self.end_headers()
-                    self.wfile.write(
-                        b"<html><body style='margin:0;background:#111'>"
-                        b"<img src='/stream' style='width:100vw;height:100vh;object-fit:contain'>"
-                        b"</body></html>"
-                    )
-                    return
-                if self.path != "/stream":
-                    self.send_error(404)
-                    return
-
-                self.send_response(200)
-                self.send_header(
-                    "Content-Type", "multipart/x-mixed-replace; boundary=frame"
-                )
-                self.end_headers()
-                try:
-                    while True:
-                        with server._lock:
-                            frame = server._frame
-                        if frame is None:
-                            time.sleep(0.01)
-                            continue
-                        self.wfile.write(b"--frame\r\n")
-                        self.wfile.write(b"Content-Type: image/jpeg\r\n\r\n")
-                        self.wfile.write(frame)
-                        self.wfile.write(b"\r\n")
-                        time.sleep(1 / 60)
-                except (BrokenPipeError, ConnectionResetError):
-                    pass  # browser tab closed
-
-        self._httpd = ThreadingHTTPServer((host, port), Handler)
-
-    def start(self):
-        thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
-        thread.start()
-        print(f"MJPEG stream: http://{self.host}:{self.port}", file=sys.stderr)
-        return self
-
-    def update(self, img):
-        ok, jpg = cv2.imencode(".jpg", img)
-        if ok:
-            with self._lock:
-                self._frame = jpg.tobytes()
 
 class VideoStream:
     def __init__(self, src=0):
@@ -126,14 +63,13 @@ detector = vision.HandLandmarker.create_from_options(options)
 
 TIP_INDEX = 8
 
-vs = VideoStream(0).start()
-stream = MJPEGServer().start()
+cap = VideoStream(0).start()
 
 p_time = 0
 c_time = 0
 
 while True:
-    success, img = vs.read()
+    success, img = cap.read()
     if not success or img is None:
         time.sleep(0.001)
         continue
@@ -188,7 +124,5 @@ while True:
 
     cv2.putText(img, f"FPS: {int(fps)}", (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
 
-    stream.update(img)
-
-vs.release()
-
+cap.release()
+cv2.destroyAllWindows()
