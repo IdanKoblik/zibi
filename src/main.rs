@@ -6,7 +6,7 @@ use niri_ipc::{Action, Request, socket};
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 struct Point {
     x: i16,
-    y: i16
+    y: i16,
 }
 
 impl Point {
@@ -18,7 +18,6 @@ impl Point {
             y: y.trim().parse().ok()?,
         })
     }
-
 }
 
 #[derive(Debug, PartialEq)]
@@ -48,9 +47,17 @@ fn detect_direction(first: &Point, last: &Point, threshold: i16) -> Option<Direc
 
     if abs_dx > threshold || abs_dy > threshold {
         let dir = if abs_dx > abs_dy {
-            if delta_x < 0 { Direction::Right } else { Direction::Left }
+            if delta_x < 0 {
+                Direction::Right
+            } else {
+                Direction::Left
+            }
         } else {
-            if delta_y < 0 { Direction::Down } else { Direction::Up }
+            if delta_y < 0 {
+                Direction::Down
+            } else {
+                Direction::Up
+            }
         };
         Some(dir)
     } else {
