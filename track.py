@@ -1,4 +1,5 @@
 import sys
+import os
 import cv2
 import time
 import threading
@@ -54,8 +55,11 @@ HAND_CONNECTIONS = [
     (0, 17),                                 # palm base
 ]
 
+BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE, "models", "hand_landmarker.task")
+
 options = vision.HandLandmarkerOptions(
-    base_options=python.BaseOptions(model_asset_path="models/hand_landmarker.task"),
+    base_options=python.BaseOptions(model_asset_path=MODEL_PATH),
     running_mode=vision.RunningMode.VIDEO,
     num_hands=1,
 )

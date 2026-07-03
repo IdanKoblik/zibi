@@ -1,2 +1,3 @@
+pyinstaller
 opencv-python
 mediapipe
