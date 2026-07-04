@@ -41,7 +41,7 @@ flowchart LR
     subgraph rust["Rust workspace"]
         zibi["zibi<br/>process supervisor + niri IPC"]
         core["zibi-core<br/>landmark parsing + gesture detection"]
-        zibi -- "raw stdout lines" --> core
+        zibi -- "unparsed landmark line" --> core
         core -- "swipe direction" --> zibi
     end
 
@@ -73,7 +73,9 @@ Current gesture mapping:
 
 ## Demo
 
-![demo)(assets/demo.mp4)
+<video src="assets/demo.mp4" controls width="100%"></video>
+
+> If the video above doesn't play, [download/view it directly](assets/demo.mp4).
 
 ---
 
