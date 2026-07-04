@@ -9,12 +9,12 @@ use zibi_core::direction::detect_direction;
 use zibi_core::point::Point;
 use zibi_core::point::PointRecord;
 
+use tracing::error;
+use tracing::info;
 use tracing_subscriber::fmt;
 use tracing_subscriber::fmt::time::SystemTime;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing::info;
-use tracing::error;
 
 use chrono::Local;
 
@@ -31,8 +31,7 @@ fn open_log_file() -> std::fs::File {
         .join(format!("zibi.{suffix}.log"));
 
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .expect("failed to create log directory");
+        std::fs::create_dir_all(parent).expect("failed to create log directory");
     }
 
     OpenOptions::new()
