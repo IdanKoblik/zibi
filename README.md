@@ -71,9 +71,9 @@ Current gesture mapping:
 - niri users who want a hands-free way to navigate their workspaces.
 - Anyone exploring camera-based, touch-free interaction as an alternative to keyboard/mouse input.
 
-### Demo
+## Demo
 
-> _Demo coming soon._ <!-- TODO: add screen recording / GIF -->
+![demo)(assets/demo.mp4)
 
 ---
 
