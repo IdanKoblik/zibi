@@ -107,7 +107,12 @@ name = "zibi"
 version = "0.1.0"
 dependencies = [
  "niri-ipc",
+ "zibi-core",
 ]
+
+[[package]]
+name = "zibi-core"
+version = "0.1.0"
 
 [[package]]
 name = "zmij"
