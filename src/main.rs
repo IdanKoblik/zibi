@@ -18,7 +18,8 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 use chrono::Local;
 
-const MOVE_THRESHOLD: i16 = 150;
+pub mod config;
+
 const WINDOW_DURATION: Duration = Duration::from_millis(300);
 const COOLDOWN_DURATION: Duration = Duration::from_millis(500);
 
@@ -73,6 +74,9 @@ fn main() {
         }
     };
 
+    info!("Loading zibi config");
+    let cfg = config::Config::load();
+
     let stdin = io::stdin();
     let mut handle = stdin.lock();
 
@@ -123,7 +127,7 @@ fn main() {
         let first = &points.first().unwrap().point;
         let last = &points.last().unwrap().point;
 
-        if let Some(dir) = detect_direction(first, last, MOVE_THRESHOLD) {
+        if let Some(dir) = detect_direction(first, last, cfg.core.move_threshold) {
             info!("Direction: {:?}", dir);
             let action = match dir {
                 Direction::Up => Request::Action(Action::FocusWorkspaceUp {}),
