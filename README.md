@@ -73,15 +73,7 @@ Current gesture mapping:
 
 ### Demo
 
-<p align="center">
-  <a href="https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4">
-    <img src="assets/demo-thumbnail.png" alt="Zibi Demo" width="800">
-  </a>
-</p>
-
-<p align="center">
-  Click the image above to watch the demo
-</p>
+https://github.com/user-attachments/assets/0fd2be83-55da-428a-986b-b8679de8f2a8
 
 ---
 
