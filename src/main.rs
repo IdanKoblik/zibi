@@ -45,14 +45,14 @@ fn main() {
     let log_file = open_log_file();
 
     let file_layer = fmt::layer()
-        .with_timer(SystemTime::default())
+        .with_timer(SystemTime)
         .with_file(true)
         .with_line_number(true)
         .with_ansi(false)
         .with_writer(log_file);
 
     let console_layer = fmt::layer()
-        .with_timer(SystemTime::default())
+        .with_timer(SystemTime)
         .with_file(true)
         .with_line_number(true)
         .with_writer(std::io::stdout);
