@@ -1,0 +1,4 @@
+# MediaPipe model — binary blob, not source. Keeps language stats / LOC honest.
+models/*.task binary
+models/*.task linguist-generated=true
+models/*.task linguist-vendored=true
