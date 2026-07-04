@@ -30,17 +30,32 @@ scrollable-tiling Wayland compositor. You wave your hand in front of the camera 
 that motion into niri actions — swipe to move between workspaces and columns without touching an input
 device.
 
-It is built as a small two-stage pipeline:
+It is built as a small two-stage pipeline, with `zibi` as the single entry point that launches and
+supervises the tracker:
 
-```
-webcam ─▶ track.py ─▶ (x, y coords) ─▶ zibi ─▶ niri IPC
-         hand tracking                 gesture detection
+```mermaid
+flowchart LR
+    webcam([webcam]) --> track["track.py<br/>hand tracking"]
+    track -- "JSON landmarks" --> zibi
+
+    subgraph rust["Rust workspace"]
+        zibi["zibi<br/>process supervisor + niri IPC"]
+        core["zibi-core<br/>landmark parsing + gesture detection"]
+        zibi -- "unparsed landmark line" --> core
+        core -- "swipe direction" --> zibi
+    end
+
+    zibi -- "IPC" --> niri([niri])
+    zibi -. "spawns & supervises" .-> track
 ```
 
 - **`track.py`** — a Python tracker built on [MediaPipe](https://developers.google.com/mediapipe) and
-  OpenCV. It follows your dominant hand's index fingertip and streams its screen coordinates to stdout.
-- **`zibi`** — a Rust program that reads those coordinates, detects swipe direction, and drives niri
-  over its IPC socket.
+  OpenCV. It detects your hand(s) and, for each one, streams a JSON record — the hand label and all 21
+  landmark points — to stdout, one record per line.
+- **`zibi`** — a Rust program that **spawns the tracker as a child process**, reads those landmark
+  records from the child's stdout, takes the index-fingertip point, detects swipe direction, and drives
+  niri over its IPC socket. When the tracker stream ends, `zibi` shuts the child down and exits. You no
+  longer pipe the two together by hand — running `zibi` starts the whole pipeline.
 
 Current gesture mapping:
 
@@ -56,9 +71,11 @@ Current gesture mapping:
 - niri users who want a hands-free way to navigate their workspaces.
 - Anyone exploring camera-based, touch-free interaction as an alternative to keyboard/mouse input.
 
-### Demo
+## Demo
 
-> _Demo coming soon._ <!-- TODO: add screen recording / GIF -->
+https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4
+
+> If the video above doesn't play, [download/view it directly](https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4).
 
 ---
 
@@ -130,15 +147,18 @@ chmod +x zibi-x86_64.AppImage
 ./zibi-x86_64.AppImage
 ```
 
-From a source checkout, launch the pipeline yourself with niri running and your webcam connected:
+From a source checkout, run `zibi` and let it spawn the tracker for you, with niri running and your
+webcam connected. By default `zibi` looks for a `track` binary next to its own executable; from a
+source build there isn't one, so point it at the Python tracker with the `ZIBI_TRACK_CMD` environment
+variable:
 
 ```bash
 # with the venv active
-python track.py | ./target/release/zibi
+ZIBI_TRACK_CMD="python track.py" ./target/release/zibi
 ```
 
-`track.py` opens a preview window showing the tracked hand skeleton and the fingertip coordinates,
-then streams `x, y` lines into `zibi`.
+The tracker opens a preview window showing the tracked hand skeleton and the fingertip coordinates,
+then streams JSON landmark records into `zibi`.
 
 **Test a gesture:** with your dominant hand visible in the preview, make a deliberate swipe — e.g.
 move left-to-right across the frame. Zibi should focus the column to the right in niri. Try up/down to
@@ -169,8 +189,16 @@ camera = "/dev/video0"     # webcam device path
 Gesture timing is currently fixed in the binary: motion is evaluated over a **300 ms** window, with a
 **500 ms** cooldown after each recognized swipe to avoid double-firing.
 
-> **Note:** `dominant_hand` and `camera` are parsed today but not yet fully wired into the runtime —
-> the tracker currently defaults to the right hand and `/dev/video0`. See
+### Environment variables
+
+- **`ZIBI_TRACK_CMD`** — the command `zibi` runs to launch the tracker. When unset, `zibi` executes a
+  `track` binary located next to its own executable (this is how the AppImage bundle is wired). Set it
+  to run the tracker a different way — for example `ZIBI_TRACK_CMD="python track.py"` when working from
+  a source checkout.
+
+> **Note:** `camera` is now passed through to the tracker (via a `--camera` argument), so it selects
+> the capture device. `dominant_hand` is parsed but not yet wired into the runtime — the tracker
+> reports every hand it detects rather than filtering to your dominant one. See
 > [Known limitations](#known-limitations).
 
 ---
@@ -200,14 +228,18 @@ tail -f ~/.local/share/zibi/zibi.*.log
   holding `/dev/video0`) and that your hand is well lit and fully in frame.
 - **Swipes never trigger** — your motion may be under `move_threshold`; lower it in the config, or make
   larger, faster swipes.
+- **"Invalid hand tracking task"** — the tracker verifies the SHA-256 of `models/hand_landmarker.task`
+  on startup and exits if it doesn't match. Re-fetch the bundled model file (or use the AppImage, which
+  ships a known-good copy).
 
 ### Known limitations
 
 - Works only with the **niri** compositor.
 - The gesture → action mapping is **fixed** (no user-defined bindings yet).
-- Only the **right hand** is tracked, and the camera device is hardcoded in the tracker, regardless of
-  the `dominant_hand` / `camera` config values.
-- Single hand only; no multi-hand or two-handed gestures.
+- The `dominant_hand` config value is **not yet wired up** — the tracker reports any hand it sees rather
+  than filtering to your dominant one.
+- The tracker detects up to **two hands**, but `zibi` still derives a single swipe from the
+  index-fingertip landmark; there are no two-handed gestures.
 
 ---
 
@@ -219,8 +251,8 @@ tail -f ~/.local/share/zibi/zibi.*.log
 cargo build              # debug build
 cargo build --release    # optimized build
 
-# run the full pipeline
-python track.py | cargo run
+# run the full pipeline (zibi spawns the tracker itself)
+ZIBI_TRACK_CMD="python track.py" cargo run
 ```
 
 ### Tests

@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub struct Point {
     pub x: i16,
     pub y: i16,

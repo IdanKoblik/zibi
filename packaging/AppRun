@@ -1,4 +1,4 @@
 #!/bin/sh
 
 HERE="$(dirname "$(readlink -f "$0")")"
-"$HERE/usr/bin/track" | "$HERE/usr/bin/zibi"
+exec "$HERE/usr/bin/zibi"
