@@ -71,11 +71,17 @@ Current gesture mapping:
 - niri users who want a hands-free way to navigate their workspaces.
 - Anyone exploring camera-based, touch-free interaction as an alternative to keyboard/mouse input.
 
-## Demo
+### Demo
 
-https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4
+<p align="center">
+  <a href="https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4">
+    <img src="assets/demo-thumbnail.png" alt="Zibi Demo" width="800">
+  </a>
+</p>
 
-> If the video above doesn't play, [download/view it directly](https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4).
+<p align="center">
+  Click the image above to watch the demo
+</p>
 
 ---
 
