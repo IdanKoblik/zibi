@@ -30,17 +30,22 @@ scrollable-tiling Wayland compositor. You wave your hand in front of the camera 
 that motion into niri actions — swipe to move between workspaces and columns without touching an input
 device.
 
-It is built as a small two-stage pipeline:
+It is built as a small two-stage pipeline, with `zibi` as the single entry point that launches and
+supervises the tracker:
 
 ```
 webcam ─▶ track.py ─▶ (x, y coords) ─▶ zibi ─▶ niri IPC
          hand tracking                 gesture detection
+                    │                    ▲
+                    └─ spawned by zibi ───┘
 ```
 
 - **`track.py`** — a Python tracker built on [MediaPipe](https://developers.google.com/mediapipe) and
   OpenCV. It follows your dominant hand's index fingertip and streams its screen coordinates to stdout.
-- **`zibi`** — a Rust program that reads those coordinates, detects swipe direction, and drives niri
-  over its IPC socket.
+- **`zibi`** — a Rust program that **spawns the tracker as a child process**, reads its coordinates
+  from the child's stdout, detects swipe direction, and drives niri over its IPC socket. When the
+  tracker stream ends, `zibi` shuts the child down and exits. You no longer pipe the two together by
+  hand — running `zibi` starts the whole pipeline.
 
 Current gesture mapping:
 
@@ -130,14 +135,17 @@ chmod +x zibi-x86_64.AppImage
 ./zibi-x86_64.AppImage
 ```
 
-From a source checkout, launch the pipeline yourself with niri running and your webcam connected:
+From a source checkout, run `zibi` and let it spawn the tracker for you, with niri running and your
+webcam connected. By default `zibi` looks for a `track` binary next to its own executable; from a
+source build there isn't one, so point it at the Python tracker with the `ZIBI_TRACK_CMD` environment
+variable:
 
 ```bash
 # with the venv active
-python track.py | ./target/release/zibi
+ZIBI_TRACK_CMD="python track.py" ./target/release/zibi
 ```
 
-`track.py` opens a preview window showing the tracked hand skeleton and the fingertip coordinates,
+The tracker opens a preview window showing the tracked hand skeleton and the fingertip coordinates,
 then streams `x, y` lines into `zibi`.
 
 **Test a gesture:** with your dominant hand visible in the preview, make a deliberate swipe — e.g.
@@ -168,6 +176,13 @@ camera = "/dev/video0"     # webcam device path
 
 Gesture timing is currently fixed in the binary: motion is evaluated over a **300 ms** window, with a
 **500 ms** cooldown after each recognized swipe to avoid double-firing.
+
+### Environment variables
+
+- **`ZIBI_TRACK_CMD`** — the command `zibi` runs to launch the tracker. When unset, `zibi` executes a
+  `track` binary located next to its own executable (this is how the AppImage bundle is wired). Set it
+  to run the tracker a different way — for example `ZIBI_TRACK_CMD="python track.py"` when working from
+  a source checkout.
 
 > **Note:** `dominant_hand` and `camera` are parsed today but not yet fully wired into the runtime —
 > the tracker currently defaults to the right hand and `/dev/video0`. See
@@ -219,8 +234,8 @@ tail -f ~/.local/share/zibi/zibi.*.log
 cargo build              # debug build
 cargo build --release    # optimized build
 
-# run the full pipeline
-python track.py | cargo run
+# run the full pipeline (zibi spawns the tracker itself)
+ZIBI_TRACK_CMD="python track.py" cargo run
 ```
 
 ### Tests
