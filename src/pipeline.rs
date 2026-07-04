@@ -7,7 +7,7 @@ use tracing::warn;
 
 use zibi_core::direction::detect_direction;
 use zibi_core::landmark::Landmark;
-use zibi_core::point::{PointRecord};
+use zibi_core::point::PointRecord;
 
 use crate::config::Config;
 use crate::niri;
