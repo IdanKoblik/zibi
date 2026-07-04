@@ -3,5 +3,9 @@ name = "zibi"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = ["zibi-core"]
+resolver = "2"
+
 [dependencies]
-niri-ipc = "26.4.0"
+zibi-core = { version = "0.1.0", path = "zibi-core" }
