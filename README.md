@@ -73,9 +73,9 @@ Current gesture mapping:
 
 ## Demo
 
-<video src="assets/demo.mp4" controls width="100%"></video>
+https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4
 
-> If the video above doesn't play, [download/view it directly](assets/demo.mp4).
+> If the video above doesn't play, [download/view it directly](https://raw.githubusercontent.com/IdanKoblik/zibi/main/assets/demo.mp4).
 
 ---
 
