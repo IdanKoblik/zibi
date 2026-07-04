@@ -4,8 +4,10 @@ use std::process::{Child, Command, Stdio};
 
 use tracing::{error, info};
 
-pub fn spawn() -> Child {
-    match spawn_track() {
+use crate::config::Config;
+
+pub fn spawn(cfg: &Config) -> Child {
+    match spawn_track(cfg) {
         Ok(child) => {
             info!("Spawned track process");
             child
@@ -17,7 +19,7 @@ pub fn spawn() -> Child {
     }
 }
 
-fn spawn_track() -> io::Result<Child> {
+fn spawn_track(cfg: &Config) -> io::Result<Child> {
     let mut cmd = match env::var("ZIBI_TRACK_CMD") {
         Ok(spec) => {
             let mut parts = spec.split_whitespace();
@@ -25,6 +27,7 @@ fn spawn_track() -> io::Result<Child> {
                 io::Error::new(io::ErrorKind::InvalidInput, "ZIBI_TRACK_CMD is empty")
             })?;
             let mut cmd = Command::new(program);
+
             cmd.args(parts);
             cmd
         }
@@ -39,5 +42,6 @@ fn spawn_track() -> io::Result<Child> {
         }
     };
 
+    cmd.args(["--camera", &cfg.core.camera.to_string_lossy()]);
     cmd.stdout(Stdio::piped()).stderr(Stdio::inherit()).spawn()
 }

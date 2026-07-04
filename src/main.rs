@@ -14,7 +14,7 @@ fn main() {
     info!("Loading zibi config");
     let cfg = config::Config::load();
 
-    let mut child = track::spawn();
+    let mut child = track::spawn(&cfg);
     let stdout = child.stdout.take().unwrap_or_else(|| {
         error!("track child has no stdout handle");
         panic!("track child has no stdout handle");

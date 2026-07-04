@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+import argparse
+import json
 import sys
 import os
 import cv2
@@ -63,13 +65,18 @@ MODEL_PATH = os.path.join(BASE, "models", "hand_landmarker.task")
 options = vision.HandLandmarkerOptions(
     base_options=python.BaseOptions(model_asset_path=MODEL_PATH),
     running_mode=vision.RunningMode.VIDEO,
-    num_hands=1,
+    num_hands=2,
 )
 detector = vision.HandLandmarker.create_from_options(options)
 
 TIP_INDEX = 8
 
-cap = VideoStream(0).start()
+parser = argparse.ArgumentParser()
+parser.add_argument("--camera", default=0, help="Camera index or video source path")
+args = parser.parse_args()
+
+source = int(args.camera) if str(args.camera).isdigit() else args.camera
+cap = VideoStream(source).start()
 
 p_time = 0
 c_time = 0
@@ -99,9 +106,6 @@ while True:
         else:
             label = f"Hand {hand_idx + 1}"
 
-        if label != "Right":
-            continue
-
         points = []
         for id, lm in enumerate(handLms):
             cx, cy = int(lm.x * w), int(lm.y * h)
@@ -113,15 +117,27 @@ while True:
         tx, ty = points[TIP_INDEX]
         for start_idx, end_idx in HAND_CONNECTIONS:
             cv2.line(img, points[start_idx], points[end_idx], (255, 255, 255), 2)
-        for cx, cy in points:
+
+        indexed_points = []
+        for idx, (cx, cy) in enumerate(points):
             cv2.circle(img, (cx, cy), 4, (255, 0, 255), cv2.FILLED)
+
+            indexed_points.append({
+                "x": cx,
+                "y": cy
+            })
+
+        data = {
+            "hand": label,
+            "points": indexed_points
+        }
 
         cv2.circle(img, (tx, ty), 9, (0, 255, 255), cv2.FILLED)
 
         text = f"{label}: ({tx}, {ty})"
         cv2.putText(img, text, (w - 320, 30 + hand_idx * 30), cv2.FONT_HERSHEY_PLAIN, 1.5, (0, 255, 0), 2)
 
-        print(f"{tx}, {ty}")
+        print(json.dumps(data))
         sys.stdout.flush()
 
     c_time = time.time()
