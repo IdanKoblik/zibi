@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import hashlib
 import argparse
 import json
 import sys
@@ -61,6 +62,15 @@ HAND_CONNECTIONS = [
 
 BASE = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE, "models", "hand_landmarker.task")
+
+def get_file_checksum(filename, algorithm="sha256"):
+    with open(filename, "rb") as f:
+        digest = hashlib.file_digest(f, algorithm)
+    return digest.hexdigest()
+
+if get_file_checksum(MODEL_PATH) != "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1":
+    print("Invalid hand tracking task :<", file=sys.stderr)
+    exit(1)
 
 options = vision.HandLandmarkerOptions(
     base_options=python.BaseOptions(model_asset_path=MODEL_PATH),
