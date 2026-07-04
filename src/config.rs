@@ -12,7 +12,7 @@ pub struct Config {
 
 #[derive(Deserialize, Serialize)]
 pub struct CoreConfig {
-    pub move_threshold: i16, /* Ms */
+    pub move_threshold: i16,
     pub dominant_hand: Hand,
     pub camera: PathBuf,
 }
