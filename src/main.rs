@@ -1,10 +1,10 @@
-use zibi_core::direction::detect_direction;
-use zibi_core::direction::Direction;
-use zibi_core::point::PointRecord;
-use zibi_core::point::Point;
+use niri_ipc::{Action, Request, socket};
 use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
-use niri_ipc::{Action, Request, socket};
+use zibi_core::direction::Direction;
+use zibi_core::direction::detect_direction;
+use zibi_core::point::Point;
+use zibi_core::point::PointRecord;
 
 const MOVE_THRESHOLD: i16 = 150;
 const WINDOW_DURATION: Duration = Duration::from_millis(300);

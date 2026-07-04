@@ -27,7 +27,7 @@ pub struct PointRecord {
 mod tests {
     use super::*;
 
-#[test]
+    #[test]
     fn parse_basic() {
         assert_eq!(Point::parse("3,4"), Some(Point { x: 3, y: 4 }));
     }
@@ -76,5 +76,4 @@ mod tests {
     fn parse_rejects_extra_component() {
         assert_eq!(Point::parse("1,2,3"), None);
     }
-
 }
