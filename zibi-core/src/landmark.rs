@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 use crate::hand::Hand;
 use crate::point::Point;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Landmark {
     pub hand: Hand,
-    camera_width: i16,
-    camera_height: i16,
+    pub camera_width: i16,
+    pub camera_height: i16,
     pub points: Vec<Point>,
 }
 

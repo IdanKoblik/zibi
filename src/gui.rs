@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
+use std::time::Duration;
 
 use gtk::prelude::{
-    BoxExt, ButtonExt, Cast, EditableExt, EntryExt, FrameExt, GtkWindowExt, WidgetExt,
+    BoxExt, ButtonExt, Cast, EditableExt, EntryExt, GtkWindowExt, WidgetExt,
 };
 use gtk::{
-    Align, Application, ApplicationWindow, Box as GtkBox, Button, DropDown, Entry, Frame,
+    Align, Application, ApplicationWindow, Box as GtkBox, Button, DropDown, Entry,
     InputPurpose, Label, Orientation, StringObject,
 };
 use gtk::glib;
@@ -14,23 +15,51 @@ use gtk::glib::object::IsA;
 
 use tracing::{error, info};
 use zibi_core::hand::Hand;
+use zibi_core::landmark::Landmark;
 
 use crate::camera::list_cameras;
 use crate::config::{Config, CoreConfig};
+use crate::points_view::PointsView;
 use crate::Command;
 
-pub fn on_activate(application: &Application, cfg: &Arc<Config>, tx: &Sender<Command>) {
+pub fn on_activate(
+    application: &Application,
+    cfg: &Arc<Config>,
+    tx: &Sender<Command>,
+    points_rx: Option<Receiver<Landmark>>,
+) {
     let window = ApplicationWindow::new(application);
     window.set_title(Some("zibi"));
     window.set_default_size(1000, 640);
 
     let root = GtkBox::new(Orientation::Horizontal, 0);
 
+    let points_view = build_content();
+
     root.append(&build_sidebar(cfg, tx));
-    root.append(&build_content());
+    root.append(points_view.widget());
+
+    if let Some(points_rx) = points_rx {
+        drain_points(points_view, points_rx);
+    }
 
     window.set_child(Some(&root));
     window.present();
+}
+
+fn drain_points(points_view: PointsView, points_rx: Receiver<Landmark>) {
+    glib::timeout_add_local(Duration::from_millis(16), move || {
+        let mut latest = None;
+        while let Ok(lm) = points_rx.try_recv() {
+            latest = Some(lm);
+        }
+
+        if let Some(lm) = latest {
+            points_view.set_points(lm.points, lm.camera_width, lm.camera_height);
+        }
+
+        glib::ControlFlow::Continue
+    });
 }
 
 fn build_sidebar(cfg: &Arc<Config>, tx: &Sender<Command>) -> GtkBox {
@@ -186,8 +215,10 @@ fn build_actions(
     actions
 }
 
-fn build_content() -> GtkBox {
-    let content = GtkBox::new(Orientation::Vertical, 0);
+fn build_content() -> PointsView {
+    let points_view = PointsView::new();
+
+    let content = points_view.widget();
     content.set_hexpand(true);
     content.set_vexpand(true);
     content.set_margin_top(12);
@@ -195,20 +226,7 @@ fn build_content() -> GtkBox {
     content.set_margin_start(12);
     content.set_margin_end(12);
 
-    let inner = Frame::new(None);
-    inner.set_hexpand(true);
-    inner.set_vexpand(true);
-
-    let placeholder = Label::new(Some("Press Start to begin hand tracking"));
-    placeholder.set_halign(Align::Center);
-    placeholder.set_valign(Align::Center);
-    placeholder.add_css_class("dim-label");
-    placeholder.add_css_class("title-2");
-    inner.set_child(Some(&placeholder));
-
-    content.append(&inner);
-
-    content
+    points_view
 }
 
 fn read_config(move_threshold: &Entry, side: &DropDown, camera: &DropDown, cfg: &Config) -> Config {

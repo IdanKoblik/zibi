@@ -1,4 +1,5 @@
 use std::io::BufRead;
+use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
 use niri_ipc::socket;
@@ -15,7 +16,12 @@ use crate::niri;
 const WINDOW_DURATION: Duration = Duration::from_millis(300);
 const COOLDOWN_DURATION: Duration = Duration::from_millis(500);
 
-pub fn run<R: BufRead>(mut reader: R, socket: &mut socket::Socket, cfg: &Config) {
+pub fn run<R: BufRead>(
+    mut reader: R,
+    socket: &mut socket::Socket,
+    cfg: &Config,
+    points_tx: &Sender<Landmark>,
+) {
     let mut buffer = String::new();
 
     let mut points: Vec<PointRecord> = Vec::new();
@@ -41,6 +47,8 @@ pub fn run<R: BufRead>(mut reader: R, socket: &mut socket::Socket, cfg: &Config)
             warn!("Could not parse point from: {buffer:?}");
             continue;
         };
+
+        let _ = points_tx.send(lm.clone());
 
         let Some(p) = lm.points.get(8) else {
             warn!("Cannot get tip finger index");

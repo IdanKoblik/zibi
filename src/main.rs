@@ -1,12 +1,14 @@
 use std::process::Child;
 use std::sync::Arc;
-use std::sync::mpsc::{self, Sender};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread::{self, JoinHandle};
 
 use tracing::{error, info};
 
 use gtk::prelude::{ApplicationExt, ApplicationExtManual};
 use gtk::Application;
+
+use zibi_core::landmark::Landmark;
 
 use crate::config::Config;
 use crate::gui::on_activate;
@@ -18,6 +20,7 @@ pub mod pipeline;
 pub mod track;
 pub mod camera;
 pub mod gui;
+pub mod points_view;
 
 pub enum Command {
     Start(Config),
@@ -31,10 +34,11 @@ fn main() {
     let cfg = Arc::new(config::Config::load());
 
     let (tx, rx) = mpsc::channel::<Command>();
+    let (points_tx, points_rx) = mpsc::channel::<Landmark>();
 
     let gui_thread = thread::spawn({
         let cfg = cfg.clone();
-        move || run_gui(cfg, tx)
+        move || run_gui(cfg, tx, points_rx)
     });
 
     let mut tracker: Option<Tracker> = None;
@@ -46,7 +50,7 @@ fn main() {
                     continue;
                 }
                 info!("Starting tracker");
-                tracker = Some(Tracker::start(cfg));
+                tracker = Some(Tracker::start(cfg, points_tx.clone()));
             }
             Command::Stop => match tracker.take() {
                 Some(tracker) => {
@@ -64,13 +68,15 @@ fn main() {
     let _ = gui_thread.join();
 }
 
-fn run_gui(cfg: Arc<Config>, tx: Sender<Command>) {
+fn run_gui(cfg: Arc<Config>, tx: Sender<Command>, points_rx: Receiver<Landmark>) {
     let app = Application::builder()
         .application_id("dev.idank.zibi")
         .build();
 
+    let points_rx = std::cell::RefCell::new(Some(points_rx));
+
     app.connect_activate(move |application| {
-        on_activate(application, &cfg, &tx);
+        on_activate(application, &cfg, &tx, points_rx.borrow_mut().take());
     });
     app.run();
 }
@@ -81,13 +87,13 @@ struct Tracker {
 }
 
 impl Tracker {
-    fn start(cfg: Config) -> Self {
+    fn start(cfg: Config, points_tx: Sender<Landmark>) -> Self {
         let mut child = track::spawn(&cfg);
 
         let worker = match child.stdout.take() {
             Some(stdout) => thread::spawn(move || {
                 let mut socket = niri::connect();
-                pipeline::run(std::io::BufReader::new(stdout), &mut socket, &cfg);
+                pipeline::run(std::io::BufReader::new(stdout), &mut socket, &cfg, &points_tx);
                 info!("track stream ended");
             }),
             None => {
