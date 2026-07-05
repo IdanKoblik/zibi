@@ -84,7 +84,7 @@ fn build_sidebar(cfg: &Arc<Config>, tx: &Sender<Command>) -> GtkBox {
 
     // 2) Hand dropdown.
     let side = DropDown::from(cfg.core.dominant_hand);
-    sidebar.append(&field("Side", &side));
+    sidebar.append(&field("Dominant hand", &side));
 
     // 3) Camera selection dropdown.
     let cameras = list_cameras();
