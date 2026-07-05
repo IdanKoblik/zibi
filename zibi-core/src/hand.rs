@@ -3,7 +3,7 @@ use serde::Serialize;
 
 use gtk::DropDown;
 
-#[derive(Deserialize, Serialize, Debug, Copy, Clone)]
+#[derive(Deserialize, Serialize, Debug, Copy, Clone, PartialEq)]
 pub enum Hand {
     Left = 0,
     Right = 1,

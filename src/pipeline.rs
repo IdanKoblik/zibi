@@ -48,8 +48,12 @@ pub fn run<R: BufRead>(
             continue;
         };
 
-        let _ = points_tx.send(lm.clone());
+        if lm.hand != cfg.core.dominant_hand {
+            continue;
+        }
 
+        let _ = points_tx.send(lm.clone());
+        // 8 = Tip finger index
         let Some(p) = lm.points.get(8) else {
             warn!("Cannot get tip finger index");
             continue;
