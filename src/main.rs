@@ -5,22 +5,22 @@ use std::thread::{self, JoinHandle};
 
 use tracing::{error, info};
 
-use gtk::prelude::{ApplicationExt, ApplicationExtManual};
 use gtk::Application;
+use gtk::prelude::{ApplicationExt, ApplicationExtManual};
 
 use zibi_core::landmark::Landmark;
 
 use crate::config::Config;
 use crate::gui::on_activate;
 
+pub mod camera;
 pub mod config;
+pub mod gui;
 pub mod logging;
 pub mod niri;
 pub mod pipeline;
-pub mod track;
-pub mod camera;
-pub mod gui;
 pub mod points_view;
+pub mod track;
 
 pub enum Command {
     Start(Config),
@@ -93,7 +93,12 @@ impl Tracker {
         let worker = match child.stdout.take() {
             Some(stdout) => thread::spawn(move || {
                 let mut socket = niri::connect();
-                pipeline::run(std::io::BufReader::new(stdout), &mut socket, &cfg, &points_tx);
+                pipeline::run(
+                    std::io::BufReader::new(stdout),
+                    &mut socket,
+                    &cfg,
+                    &points_tx,
+                );
                 info!("track stream ended");
             }),
             None => {

@@ -3,24 +3,22 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Duration;
 
-use gtk::prelude::{
-    BoxExt, ButtonExt, Cast, EditableExt, EntryExt, GtkWindowExt, WidgetExt,
-};
-use gtk::{
-    Align, Application, ApplicationWindow, Box as GtkBox, Button, DropDown, Entry,
-    InputPurpose, Label, Orientation, StringObject,
-};
 use gtk::glib;
 use gtk::glib::object::IsA;
+use gtk::prelude::{BoxExt, ButtonExt, Cast, EditableExt, EntryExt, GtkWindowExt, WidgetExt};
+use gtk::{
+    Align, Application, ApplicationWindow, Box as GtkBox, Button, DropDown, Entry, InputPurpose,
+    Label, Orientation, StringObject,
+};
 
 use tracing::{error, info};
 use zibi_core::hand::Hand;
 use zibi_core::landmark::Landmark;
 
+use crate::Command;
 use crate::camera::list_cameras;
 use crate::config::{Config, CoreConfig};
 use crate::points_view::PointsView;
-use crate::Command;
 
 pub fn on_activate(
     application: &Application,

@@ -83,24 +83,26 @@ mod tests {
 
     #[test]
     fn parse_rejects_missing_fields() {
-        assert!(Landmark::parse(r#"{"hand":"Right","camera_width":640,"camera_height":480}"#).is_none());
-        assert!(Landmark::parse(
-            r#"{"camera_width":640,"camera_height":480,"points":[{"x":1,"y":2}]}"#
-        )
-        .is_none());
+        assert!(
+            Landmark::parse(r#"{"hand":"Right","camera_width":640,"camera_height":480}"#).is_none()
+        );
+        assert!(
+            Landmark::parse(r#"{"camera_width":640,"camera_height":480,"points":[{"x":1,"y":2}]}"#)
+                .is_none()
+        );
     }
 
     #[test]
     fn parse_rejects_missing_camera_dimensions() {
         assert!(Landmark::parse(r#"{"hand":"Right","points":[{"x":1,"y":2}]}"#).is_none());
-        assert!(Landmark::parse(
-            r#"{"hand":"Right","camera_width":640,"points":[{"x":1,"y":2}]}"#
-        )
-        .is_none());
-        assert!(Landmark::parse(
-            r#"{"hand":"Right","camera_height":480,"points":[{"x":1,"y":2}]}"#
-        )
-        .is_none());
+        assert!(
+            Landmark::parse(r#"{"hand":"Right","camera_width":640,"points":[{"x":1,"y":2}]}"#)
+                .is_none()
+        );
+        assert!(
+            Landmark::parse(r#"{"hand":"Right","camera_height":480,"points":[{"x":1,"y":2}]}"#)
+                .is_none()
+        );
     }
 
     #[test]
@@ -113,14 +115,18 @@ mod tests {
 
     #[test]
     fn parse_rejects_malformed_point() {
-        assert!(Landmark::parse(
-            r#"{"hand":"Right","camera_width":640,"camera_height":480,"points":[{"x":1}]}"#
-        )
-        .is_none());
-        assert!(Landmark::parse(
-            r#"{"hand":"Right","camera_width":640,"camera_height":480,"points":"1,2"}"#
-        )
-        .is_none());
+        assert!(
+            Landmark::parse(
+                r#"{"hand":"Right","camera_width":640,"camera_height":480,"points":[{"x":1}]}"#
+            )
+            .is_none()
+        );
+        assert!(
+            Landmark::parse(
+                r#"{"hand":"Right","camera_width":640,"camera_height":480,"points":"1,2"}"#
+            )
+            .is_none()
+        );
         assert!(Landmark::parse(
             r#"{"hand":"Right","camera_width":640,"camera_height":480,"points":[{"x":40000,"y":0}]}"#
         )
@@ -129,13 +135,17 @@ mod tests {
 
     #[test]
     fn parse_rejects_out_of_range_camera_dimensions() {
-        assert!(Landmark::parse(
-            r#"{"hand":"Right","camera_width":40000,"camera_height":480,"points":[]}"#
-        )
-        .is_none());
-        assert!(Landmark::parse(
-            r#"{"hand":"Right","camera_width":640,"camera_height":40000,"points":[]}"#
-        )
-        .is_none());
+        assert!(
+            Landmark::parse(
+                r#"{"hand":"Right","camera_width":40000,"camera_height":480,"points":[]}"#
+            )
+            .is_none()
+        );
+        assert!(
+            Landmark::parse(
+                r#"{"hand":"Right","camera_width":640,"camera_height":40000,"points":[]}"#
+            )
+            .is_none()
+        );
     }
 }

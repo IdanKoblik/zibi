@@ -14,4 +14,3 @@ pub fn list_cameras() -> Vec<String> {
     }
     cameras
 }
-
