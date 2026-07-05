@@ -78,7 +78,7 @@ Current gesture mapping:
 
 ### Demo
 
-https://github.com/user-attachments/assets/330e9a7f-22d9-4a55-a9a5-7bbde4b96241
+https://github.com/user-attachments/assets/2dbf4007-57d5-49c4-afc7-21ee13039dda
 
 ---
 
