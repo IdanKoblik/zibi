@@ -5,15 +5,14 @@ use gtk::DropDown;
 
 #[derive(Deserialize, Serialize, Debug, Copy, Clone)]
 pub enum Hand {
-    Left,
-    Right,
+    Left = 0,
+    Right = 1,
 }
 
 impl From<Hand> for DropDown {
     fn from(hand: Hand) -> Self {
-        match hand {
-            Hand::Left => DropDown::from_strings(&["Left", "Right"]),
-            Hand::Right => DropDown::from_strings(&["Left", "Right"]),
-        }
+        let dropdown = DropDown::from_strings(&["Left", "Right"]);
+        dropdown.set_selected(hand as u32);
+        dropdown
     }
 }
