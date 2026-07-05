@@ -292,9 +292,3 @@ hand motion in front of a webcam. If you rely on touch-free input and have feedb
 run into barriers using Zibi, please reach out by opening an issue on the
 [issue tracker](https://github.com/IdanKoblik/zibi/issues). Accessibility reports and feature requests
 are treated as first-class.
-
----
-
-## License
-
-Zibi is released under the [MIT License](LICENSE).
