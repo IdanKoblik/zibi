@@ -40,9 +40,11 @@ flowchart LR
 
     subgraph rust["Rust workspace"]
         zibi["zibi<br/>process supervisor + niri IPC"]
+        gui["GTK4 GUI<br/>controls + point preview"]
         core["zibi-core<br/>landmark parsing + gesture detection"]
         zibi -- "unparsed landmark line" --> core
         core -- "swipe direction" --> zibi
+        zibi -- "landmark frames" --> gui
     end
 
     zibi -- "IPC" --> niri([niri])
@@ -50,12 +52,15 @@ flowchart LR
 ```
 
 - **`track.py`** — a Python tracker built on [MediaPipe](https://developers.google.com/mediapipe) and
-  OpenCV. It detects your hand(s) and, for each one, streams a JSON record — the hand label and all 21
-  landmark points — to stdout, one record per line.
-- **`zibi`** — a Rust program that **spawns the tracker as a child process**, reads those landmark
-  records from the child's stdout, takes the index-fingertip point, detects swipe direction, and drives
-  niri over its IPC socket. When the tracker stream ends, `zibi` shuts the child down and exits. You no
-  longer pipe the two together by hand — running `zibi` starts the whole pipeline.
+  headless OpenCV. It detects your hand(s) and, for each one, streams a JSON record — the hand label and
+  all 21 landmark points — to stdout, one record per line. It renders no window of its own; the preview
+  lives in the `zibi` GUI.
+- **`zibi`** — a Rust program with a **GTK4 GUI** that **spawns the tracker as a child process**, reads
+  those landmark records from the child's stdout, takes the index-fingertip point, detects swipe
+  direction, and drives niri over its IPC socket. Landmark frames are forwarded to the GUI, which draws
+  the tracked points live in its preview panel. When the tracker stream ends, `zibi` shuts the child
+  down and exits. You no longer pipe the two together by hand — running `zibi` starts the whole
+  pipeline.
 
 Current gesture mapping:
 
@@ -82,8 +87,8 @@ https://github.com/user-attachments/assets/0fd2be83-55da-428a-986b-b8679de8f2a8
 - **Wayland session running [niri](https://github.com/YaLTeR/niri)** — Zibi talks to niri over its IPC
   socket, so it only works inside a running niri instance.
 - **A webcam** exposed as a V4L2 device (e.g. `/dev/video0`).
-- **System libraries** for the tracker and its GUI preview: OpenGL, a working V4L2 backend, and the
-  usual GTK/X libraries that OpenCV and MediaPipe pull in. On most desktop Linux installs these are
+- **System libraries**: GTK4 for the `zibi` GUI, plus a working V4L2 backend and the libraries that
+  MediaPipe and headless OpenCV pull in for the tracker. On most desktop Linux installs these are
   already present.
 - To build from source:
   - **Rust** (2024 edition toolchain — install via [rustup](https://rustup.rs)).
@@ -122,8 +127,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`requirements.txt` pulls in `opencv-python`, `mediapipe`, and `pyinstaller`. The hand-tracking model
-ships in `models/hand_landmarker.task`.
+`requirements.txt` pulls in `opencv-python-headless`, `mediapipe`, and `pyinstaller`. The hand-tracking
+model ships in `models/hand_landmarker.task`.
 
 To reproduce the packaged AppImage locally (requires
 [`appimagetool`](https://github.com/AppImage/appimagetool)):
@@ -155,12 +160,12 @@ variable:
 ZIBI_TRACK_CMD="python track.py" ./target/release/zibi
 ```
 
-The tracker opens a preview window showing the tracked hand skeleton and the fingertip coordinates,
-then streams JSON landmark records into `zibi`.
+The tracker streams JSON landmark records into `zibi`, whose GUI draws the tracked points live in its
+preview panel.
 
-**Test a gesture:** with your dominant hand visible in the preview, make a deliberate swipe — e.g.
+**Test a gesture:** with your dominant hand visible to the camera, make a deliberate swipe — e.g.
 move left-to-right across the frame. Zibi should focus the column to the right in niri. Try up/down to
-move between workspaces. Press `q` in the preview window to stop the tracker.
+move between workspaces. Press **Stop** in the GUI to stop the tracker.
 
 If nothing happens, see [Troubleshooting](#troubleshooting).
 
