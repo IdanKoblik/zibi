@@ -139,6 +139,8 @@ while True:
 
         data = {
             "hand": label,
+            "camera_width": w,
+            "camera_height": h,
             "points": indexed_points
         }
 
@@ -156,9 +158,9 @@ while True:
 
     cv2.putText(img, f"FPS: {int(fps)}", (10, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 255), 3)
 
-    cv2.imshow("Image", img)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+    # cv2.imshow("Image", img)
+    # if cv2.waitKey(1) & 0xFF == ord('q'):
+    #     break
 
 cap.release()
-cv2.destroyAllWindows()
+# cv2.destroyAllWindows()

@@ -1,28 +1,107 @@
+use std::process::Child;
+use std::sync::Arc;
+use std::sync::mpsc::{self, Sender};
+use std::thread::{self, JoinHandle};
+
 use tracing::{error, info};
 
+use gtk::prelude::{ApplicationExt, ApplicationExtManual};
+use gtk::Application;
+
+use crate::config::Config;
+use crate::gui::on_activate;
+
 pub mod config;
-mod logging;
-mod niri;
-mod pipeline;
-mod track;
+pub mod logging;
+pub mod niri;
+pub mod pipeline;
+pub mod track;
+pub mod camera;
+pub mod gui;
+
+pub enum Command {
+    Start(Config),
+    Stop,
+}
 
 fn main() {
     logging::init();
 
-    let mut niri_socket = niri::connect();
-
     info!("Loading zibi config");
-    let cfg = config::Config::load();
+    let cfg = Arc::new(config::Config::load());
 
-    let mut child = track::spawn(&cfg);
-    let stdout = child.stdout.take().unwrap_or_else(|| {
-        error!("track child has no stdout handle");
-        panic!("track child has no stdout handle");
+    let (tx, rx) = mpsc::channel::<Command>();
+
+    let gui_thread = thread::spawn({
+        let cfg = cfg.clone();
+        move || run_gui(cfg, tx)
     });
 
-    pipeline::run(std::io::BufReader::new(stdout), &mut niri_socket, &cfg);
+    let mut tracker: Option<Tracker> = None;
+    for cmd in rx {
+        match cmd {
+            Command::Start(cfg) => {
+                if tracker.is_some() {
+                    error!("Start received while tracker already running, ignoring");
+                    continue;
+                }
+                info!("Starting tracker");
+                tracker = Some(Tracker::start(cfg));
+            }
+            Command::Stop => match tracker.take() {
+                Some(tracker) => {
+                    info!("Stopping tracker");
+                    tracker.stop();
+                }
+                None => error!("Stop received while no tracker running, ignoring"),
+            },
+        }
+    }
 
-    info!("track stream ended, shutting down tracker");
-    let _ = child.kill();
-    let _ = child.wait();
+    if let Some(tracker) = tracker.take() {
+        tracker.stop();
+    }
+    let _ = gui_thread.join();
+}
+
+fn run_gui(cfg: Arc<Config>, tx: Sender<Command>) {
+    let app = Application::builder()
+        .application_id("dev.idank.zibi")
+        .build();
+
+    app.connect_activate(move |application| {
+        on_activate(application, &cfg, &tx);
+    });
+    app.run();
+}
+
+struct Tracker {
+    child: Child,
+    worker: JoinHandle<()>,
+}
+
+impl Tracker {
+    fn start(cfg: Config) -> Self {
+        let mut child = track::spawn(&cfg);
+
+        let worker = match child.stdout.take() {
+            Some(stdout) => thread::spawn(move || {
+                let mut socket = niri::connect();
+                pipeline::run(std::io::BufReader::new(stdout), &mut socket, &cfg);
+                info!("track stream ended");
+            }),
+            None => {
+                error!("track child has no stdout handle");
+                thread::spawn(|| {})
+            }
+        };
+
+        Tracker { child, worker }
+    }
+
+    fn stop(mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        let _ = self.worker.join();
+    }
 }
